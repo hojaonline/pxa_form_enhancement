@@ -89,12 +89,41 @@ class SaveFormFinisher extends AbstractFinisher
         $this->saveForm->setFormData($message);
         $this->saveForm->setPid($this->pid);
         $this->saveForm->setName($this->options['name'] . ' #' . ++$count);
-
+        
+        $formArguments = $formRuntime->getFormState()->getFormValues();
+        if (is_array($formArguments)) {
+            $matchedArray = $this->checkMarkerInitialized($this->options['name']);
+            if (!empty($matchedArray[1])) {
+                foreach ($matchedArray[1] as $index => $value) {
+                    if (isset($formArguments[$value]) && !empty($formArguments[$value])) {
+                        $matchedArray[1][$index] = $formArguments[$value];
+                    }
+                }
+            }
+            $this->options['name'] = str_replace($matchedArray[0], $matchedArray[1], $this->options['name']);
+            $this->saveForm->setName($this->options['name'] . ' #' . ++$count);
+        }
         $this->attachFiles($formRuntime);
-
         $this->formRepository->add($this->saveForm);
-
         $this->objectManager->get(PersistenceManager::class)->persistAll();
+    }
+
+    /**
+     * checkMarkerInitialized
+     *
+     * @param $option string
+     * @return multiple
+     */
+    public function checkMarkerInitialized($option)
+    {
+        $pattern  = "/{(.*?)}/";
+        $stringss = preg_match_all($pattern, $option, $matches);
+        if (!empty($matches)) {
+            return $matches;
+        }
+        else {
+            return false;
+        }
     }
 
     /**
